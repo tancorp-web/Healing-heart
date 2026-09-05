@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="th">
+<head><style>
+@font-face {
+  font-family: "Optimistic";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/OptimisticAI_VF_Optimized.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Optimistic Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/OptimisticMono_W_TextRegular.woff2") format("woff2");
+}
+:where(html) {
+  font-family: "Optimistic", system-ui, sans-serif;
+}
+:where(code, pre, kbd, samp) {
+  font-family: "Optimistic Mono", ui-monospace, monospace;
+}
+</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Healing Heart Oracle - 52 Cards</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body{font-family:'Prompt',sans-serif;background:#fff7f9}
+  .serif{font-family:'Cormorant Garamond',serif}
+  .card-wrap{perspective:1000px}
+  .card-inner{transition:transform 0.7s;transform-style:preserve-3d}
+  .card-wrap.flipped .card-inner{transform:rotateY(180deg)}
+  .card-face{backface-visibility:hidden;position:absolute;inset:0;border-radius:1.25rem}
+  .card-back{transform:rotateY(0deg)}
+  .card-front{transform:rotateY(180deg)}
+  .deck-shuffle{animation:shuffle 0.6s ease-in-out}
+  @keyframes shuffle{0%{transform:translateY(0) rotate(0)}25%{transform:translateY(-10px) rotate(2deg)}50%{transform:translateY(5px) rotate(-2deg)}75%{transform:translateY(-5px) rotate(1deg)}100%{transform:translateY(0) rotate(0)}}
+</style>
+</head>
+<body class="min-h-screen text-zinc-800">
+<!-- CONFIG - แก้ 2 บรรทัดนี้ -->
+<script>
+const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"; // ใส่ URL จาก Supabase > Project Settings > API
+const SUPABASE_ANON_KEY = "YOUR_ANON_KEY"; // ใส่ anon key
+const BACK_CARD_NUMBER = 99;
+const CARD_IMAGE_BASE = ""; // ถ้ามี bucket เช่น https://.../storage/v1/object/public/cards/ ใส่ตรงนี้ แล้วไฟล์จะเรียกเป็น 01.jpg
+</script>
+
+<header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-pink-100">
+  <div class="max-w-6xl mx-auto px-5 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-rose-300 flex items-center justify-center text-white">♥</div>
+      <div>
+        <div class="font-semibold leading-none">Healing Heart</div>
+        <div class="text-xs text-zinc-500">Oracle 52 + 99 หลังไพ่</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-xs">
+      <span id="connDot" class="w-2 h-2 rounded-full bg-zinc-300"></span>
+      <span id="connText" class="text-zinc-500">ยังไม่ได้เชื่อมต่อ Supabase</span>
+      <button onclick="document.getElementById('cfg').classList.toggle('hidden')" class="ml-3 px-3 py-1.5 rounded-full bg-zinc-900 text-white">ตั้งค่า</button>
+    </div>
+  </div>
+</header>
+
+<div id="cfg" class="hidden max-w-6xl mx-auto px-5 pt-4">
+  <div class="bg-white rounded-2xl p-5 border border-pink-100 shadow-sm">
+    <h3 class="font-medium mb-3">ตั้งค่า Supabase (ทำครั้งเดียว)</h3>
+    <div class="grid md:grid-cols-2 gap-3">
+      <input id="inpUrl" placeholder="https://xxx.supabase.co" class="px-4 py-2.5 rounded-xl border border-zinc-200 w-full">
+      <input id="inpKey" placeholder="anon key eyJ..." class="px-4 py-2.5 rounded-xl border border-zinc-200 w-full">
+    </div>
+    <div class="flex gap-2 mt-3">
+      <button onclick="saveCfg()" class="px-5 py-2 rounded-full bg-pink-500 text-white">บันทึก & เชื่อมต่อ</button>
+      <span class="text-xs text-zinc-500 py-2">ค่านี้จะเก็บใน localStorage ของคุณเท่านั้น</span>
+    </div>
+    <div class="mt-4 text-xs leading-relaxed text-zinc-600 bg-pink-50 p-3 rounded-xl">
+      <b>ต้องเปิด RLS ให้อ่านได้:</b> ใน Supabase > Table Editor > Cards > RLS policies > New Policy > Enable read for anon<br>
+      SQL: <code>create policy "allow anon read" on public."Cards" for select to anon using (true);</code><br>
+      ทำเหมือนกันกับตาราง readings ถ้าจะบันทึกการดูดวง
+    </div>
+  </div>
+</div>
+
+<main class="max-w-6xl mx-auto px-5 py-8">
+  <!-- HERO -->
+  <div class="text-center py-6">
+    <h1 class="serif text-4xl md:text-5xl font-semibold">ยินดีต้อนรับสู่ Healing Heart</h1>
+    <p class="mt-3 text-zinc-600">ไพ่ออราเคิล 52 ใบ พลังงานเยียวยา • เลข 99 คือไพ่ด้านหลัง • สับไพ่แล้วเลือกด้วยหัวใจ</p>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="flex flex-wrap justify-center gap-2.5 mt-2">
+    <button onclick="shuffleDeck()" class="px-5 py-2.5 rounded-full bg-white border border-pink-200 hover:bg-pink-50">🔀 สับไพ่</button>
+    <button onclick="drawCards(1)" class="px-6 py-2.5 rounded-full bg-zinc-900 text-white">เปิด 1 ใบ</button>
+    <button onclick="drawCards(3)" class="px-6 py-2.5 rounded-full bg-pink-500 text-white">เปิด 3 ใบ • อดีต ปัจจุบัน อนาคต</button>
+    <button onclick="drawCards(5)" class="px-6 py-2.5 rounded-full bg-gradient-to-r from-pink-500 to-rose-400 text-white">เปิด 5 ใบ • ความรัก</button>
+    <button onclick="clearReading()" class="px-5 py-2.5 rounded-full bg-white border">ล้างไพ่</button>
+  </div>
+
+  <!-- READING AREA -->
+  <div id="reading" class="mt-10 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 min-h-[280px]"></div>
+
+  <!-- DECK -->
+  <div class="mt-12">
+    <div class="flex justify-between items-center">
+      <h2 class="font-medium">สำรับไพ่ทั้งหมด (<span id="deckCount">52</span>)</h2>
+      <div class="flex gap-2">
+        <input id="search" oninput="renderDeck()" placeholder="ค้นหา: ความรัก, healing..." class="px-4 py-2 rounded-full border border-zinc-200 text-sm w-56">
+        <button onclick="toggleGallery()" class="px-4 py-2 rounded-full bg-white border text-sm">ดูทั้งหมด</button>
+      </div>
+    </div>
+    <div id="deck" class="mt-5 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="history" class="mt-12 bg-white rounded-3xl p-6 border border-pink-100 hidden">
+    <h3 class="font-medium">ประวัติการเปิดไพ่ล่าสุด</h3>
+    <div id="historyList" class="mt-3 space-y-2 text-sm"></div>
+  </div>
+</main>
+
+<!-- MODAL -->
+<div id="modal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeModal()"></div>
+  <div class="relative max-w-lg mx-auto mt-16 bg-white rounded-[2rem] p-7 shadow-2xl">
+    <button onclick="closeModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-zinc-100">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+// ---------- DATA FALLBACK 1-52 ----------
+const FALLBACK_CARDS = [
+{number:1,name_th:"การฟื้นคืน",name_en:"RESURRECTION",meaning:"พลังงานของการเกิดใหม่ หัวใจที่เคยแตกสลายกำลังจะกลับมาเต้นอีกครั้ง",keyword:"เกิดใหม่, ให้อภัยตัวเอง"},
+{number:2,name_th:"ความรัก",name_en:"PURE LOVE ESSENCE",meaning:"รักแท้เริ่มจากข้างใน เมื่อคุณรักตัวเองได้ ความรักจากจักรวาลจะไหลเข้ามา",keyword:"รักบริสุทธิ์"},
+{number:3,name_th:"ความอุดมสมบูรณ์",name_en:"ABUNDANCE OF LOVE",meaning:"ความรักมีไม่จำกัด ยิ่งให้ยิ่งได้รับ",keyword:"มั่งคั่ง"},
+{number:4,name_th:"สายใย",name_en:"SOUL THREAD",meaning:"บางคนเข้ามาเพื่อผูกสายใย ไม่ใช่ผูกมัด แต่เพื่อเตือนว่าคุณไม่เคยโดดเดี่ยว",keyword:"พรหมลิขิต"},
+{number:5,name_th:"หัวใจเปิด",name_en:"OPEN HEART",meaning:"เมื่อหัวใจเปิด โอกาสจะเปิดตาม",keyword:"เปิดใจ"},
+{number:6,name_th:"ความผูกพัน",name_en:"SACRED BOND",meaning:"ความผูกพันที่แท้จริงไม่ต้องพยายามรั้ง มันอยู่ด้วยความเข้าใจ",keyword:"สายสัมพันธ์"},
+{number:7,name_th:"การเยียวยาใจ",name_en:"HEART HEALING",meaning:"อนุญาตให้ตัวเองเจ็บ แล้วความเจ็บจะสอนวิธีเยียวยา",keyword:"ฮีลใจ"},
+{number:8,name_th:"การปล่อยวาง",name_en:"LETTING GO OF PAIN",meaning:"การปล่อยวางไม่ใช่การยอมแพ้ แต่คือการเลือกความสงบ",keyword:"ปล่อยวาง"},
+{number:9,name_th:"ความไว้ใจ",name_en:"TRUST - FIRST STEP",meaning:"ความไว้ใจคือก้าวแรกของทุกความสัมพันธ์",keyword:"ไว้ใจ"},
+{number:10,name_th:"ความอ่อนโยน",name_en:"GENTLENESS",meaning:"อ่อนโยนกับตัวเองก่อน แล้วโลกจะอ่อนโยนกับคุณ",keyword:"อ่อนโยน"},
+{number:11,name_th:"ความมั่งคั่งแห่งรัก",name_en:"WEALTH OF LOVE",meaning:"รักที่มั่งคั่งคือรักที่แบ่งปันได้",keyword:"มั่งคั่ง"},
+{number:12,name_th:"การตัดสินใจ",name_en:"HEART DECISION",meaning:"ฟังหัวใจ ไม่ใช่แค่สมอง หัวใจรู้ทางที่สมองยังคำนวณไม่ถึง",keyword:"ตัดสินใจ"},
+{number:13,name_th:"การเปลี่ยนแปลง",name_en:"TRANSFORMATION",meaning:"ทุกการเปลี่ยนแปลงคือการผลัดใบของจิตวิญญาณ",keyword:"เปลี่ยน"},
+{number:14,name_th:"โอกาสทอง",name_en:"GOLDEN OPPORTUNITY",meaning:"โอกาสของความรักมักมาในคราบของความกล้า",keyword:"โอกาส"},
+{number:15,name_th:"การลงทุนแห่งรัก",name_en:"INVESTMENT OF LOVE",meaning:"ความรักต้องลงทุนด้วยเวลา ความใส่ใจ และการรับฟัง",keyword:"ลงทุน"},
+{number:16,name_th:"ผู้กล้าแห่งรัก",name_en:"THE BRAVE LOVER",meaning:"กล้าที่จะรักทั้งที่รู้ว่าอาจเจ็บ คือความกล้าหาญสูงสุด",keyword:"กล้าหาญ"},
+{number:17,name_th:"ความสำเร็จ",name_en:"SUCCESS IN LOVE",meaning:"ความสำเร็จในรักไม่ได้วัดที่การครอบครอง แต่วัดที่การเติบโตไปด้วยกัน",keyword:"สำเร็จ"},
+{number:18,name_th:"ความมั่นคง",name_en:"STABILITY - ROOTED LOVE",meaning:"รักที่มั่นคงคือบ้านที่ปลอดภัยให้หัวใจได้พัก",keyword:"มั่นคง"},
+{number:19,name_th:"การเจรจา",name_en:"SACRED COMMUNICATION",meaning:"พูดจากหัวใจ ฟังด้วยหัวใจ",keyword:"สื่อสาร"},
+{number:20,name_th:"โชคชะตา",name_en:"DESTINY THREAD",meaning:"โชคชะตาไม่ได้กำหนดให้เราพบใคร แต่กำหนดว่าเราจะเรียนรู้อะไรจากเขา",keyword:"โชคชะตา"},
+{number:21,name_th:"ความผูกพันภายใน",name_en:"INNER BOND",meaning:"กลับมาเชื่อมกับตัวเองก่อน แล้วคุณจะเชื่อมกับคนอื่นได้ลึกขึ้น",keyword:"ภายใน"},
+{number:22,name_th:"ความสมบูรณ์",name_en:"WHOLENESS",meaning:"คุณสมบูรณ์อยู่แล้ว ความรักมาเพื่อสะท้อน ไม่ใช่เติมเต็ม",keyword:"สมบูรณ์"},
+{number:23,name_th:"การเรียนรู้",name_en:"SOUL LEARNING",meaning:"ทุกความสัมพันธ์คือห้องเรียนของวิญญาณ",keyword:"เรียนรู้"},
+{number:24,name_th:"การให้อภัย",name_en:"FORGIVENESS",meaning:"การให้อภัยคือการปลดโซ่ตัวเองออกจากอดีต",keyword:"อภัย"},
+{number:25,name_th:"การเริ่มต้นใหม่",name_en:"NEW BEGINNING",meaning:"ทุกเช้าคือโอกาสเริ่มต้นใหม่ของหัวใจ",keyword:"เริ่มใหม่"},
+{number:26,name_th:"ความไว้ใจอันลึกซึ้ง",name_en:"DEEP TRUST",meaning:"เมื่อไว้ใจลึกซึ้ง ความกลัวจะละลาย",keyword:"ศรัทธา"},
+{number:27,name_th:"การสื่อสารจากหัวใจ",name_en:"HEART COMMUNICATION",meaning:"คำพูดที่มาจากหัวใจจะไปถึงหัวใจเสมอ",keyword:"สื่อสารลึก"},
+{number:28,name_th:"พลังงานศักดิ์สิทธิ์",name_en:"DIVINE ENERGY",meaning:"คุณกำลังถูกโอบอุ้มด้วยพลังงานที่สูงกว่าตัวคุณ",keyword:"ศักดิ์สิทธิ์"},
+{number:29,name_th:"ความสมดุล",name_en:"BALANCE",meaning:"รักที่ดีคือสมดุลระหว่างให้และรับ",keyword:"สมดุล"},
+{number:30,name_th:"การโอบกอดตัวเอง",name_en:"SELF EMBRACE",meaning:"โอบกอดตัวเองในวันที่ไม่มีใครเข้าใจ",keyword:"รักตัวเอง"},
+{number:31,name_th:"แสงนำทาง",name_en:"GUIDING LIGHT",meaning:"หัวใจของคุณรู้ทางเสมอ แม้สมองจะยังสับสน",keyword:"นำทาง"},
+{number:32,name_th:"ความกล้าหาญ",name_en:"COURAGE",meaning:"กล้าที่จะซื่อสัตย์กับความรู้สึกตัวเอง",keyword:"กล้า"},
+{number:33,name_th:"จักรวาลแห่งรัก",name_en:"UNIVERSE OF LOVE",meaning:"จักรวาลกำลังจัดเรียงบางอย่างเพื่อคุณ",keyword:"จักรวาล"},
+{number:34,name_th:"การคืนดี",name_en:"RECONCILIATION",meaning:"การคืนดีที่แท้จริงเริ่มจากการคืนดีกับตัวเอง",keyword:"คืนดี"},
+{number:35,name_th:"พรหมลิขิต",name_en:"SOULMATE DESTINY",meaning:"บางคนไม่ได้มาเพื่ออยู่ตลอดไป แต่มาเพื่อเปลี่ยนตลอดไป",keyword:"คู่แท้"},
+{number:36,name_th:"การเติบโต",name_en:"GROWTH",meaning:"ความรักที่เติบโตคือรักที่ยอมให้อีกฝ่ายเติบโตด้วย",keyword:"เติบโต"},
+{number:37,name_th:"ความเงียบศักดิ์สิทธิ์",name_en:"SACRED SILENCE",meaning:"ในความเงียบ คุณจะได้ยินเสียงหัวใจตัวเองชัดที่สุด",keyword:"เงียบ"},
+{number:38,name_th:"ปาฏิหาริย์แห่งรัก",name_en:"MIRACLE OF LOVE",meaning:"ปาฏิหาริย์เกิดเมื่อคุณเชื่อว่ารักเป็นไปได้",keyword:"ปาฏิหาริย์"},
+{number:39,name_th:"การปลดปล่อย",name_en:"RELEASE",meaning:"ปลดปล่อยความคาดหวัง แล้วรักจะเบาสบาย",keyword:"อิสระ"},
+{number:40,name_th:"ความเมตตา",name_en:"COMPASSION",meaning:"เมตตาต่อคนที่ทำร้ายคุณ คือการปลดปล่อยตัวเอง",keyword:"เมตตา"},
+{number:41,name_th:"สัญญาแห่งหัวใจ",name_en:"HEART PROMISE",meaning:"คำสัญญาที่สำคัญที่สุดคือสัญญาที่ให้ไว้กับหัวใจตัวเอง",keyword:"สัญญา"},
+{number:42,name_th:"ทางเลือกใหม่",name_en:"NEW PATH",meaning:"เมื่อประตูหนึ่งปิด จักรวาลกำลังเปิดอีกบานที่สว่างกว่า",keyword:"ทางใหม่"},
+{number:43,name_th:"พลังแห่งการอธิษฐาน",name_en:"PRAYER POWER",meaning:"คำอธิษฐานจากหัวใจบริสุทธิ์มีพลังมากกว่าที่คุณคิด",keyword:"อธิษฐาน"},
+{number:44,name_th:"ความจริงใจ",name_en:"SINCERITY",meaning:"ความจริงใจคือภาษาที่ทุกคนเข้าใจ",keyword:"จริงใจ"},
+{number:45,name_th:"การเยียวยาอดีต",name_en:"PAST HEALING",meaning:"อดีตไม่ได้ตามหลอกหลอน มันแค่รอการเยียวยา",keyword:"อดีต"},
+{number:46,name_th:"ความหวัง",name_en:"HOPE",meaning:"ความหวังคือแสงเล็กๆ ที่ทำให้หัวใจไม่มืดสนิท",keyword:"หวัง"},
+{number:47,name_th:"การรวมเป็นหนึ่ง",name_en:"UNION",meaning:"เมื่อสองหัวใจรวมเป็นหนึ่ง ไม่ใช่การสูญเสียตัวตน แต่คือการขยายตัวตน",keyword:"รวมเป็นหนึ่ง"},
+{number:48,name_th:"ความอิสระ",name_en:"FREEDOM",meaning:"รักที่แท้จริงให้อิสระ ไม่ได้กักขัง",keyword:"อิสระ"},
+{number:49,name_th:"ของขวัญจากจักรวาล",name_en:"GIFT FROM UNIVERSE",meaning:"สิ่งที่คุณรอคอยกำลังถูกห่อเป็นของขวัญส่งมา",keyword:"ของขวัญ"},
+{number:50,name_th:"ความศรัทธา",name_en:"FAITH",meaning:"ศรัทธาในรัก แม้ในวันที่รักยังมองไม่เห็น",keyword:"ศรัทธา"},
+{number:51,name_th:"การเฉลิมฉลอง",name_en:"CELEBRATION",meaning:"เฉลิมฉลองความรักในทุกรูปแบบ แม้ยังเป็นความรักข้างเดียว",keyword:"เฉลิมฉลอง"},
+{number:52,name_th:"นิรันดร์แห่งรัก",name_en:"ETERNAL LOVE",meaning:"รักแท้ไม่เคยจบ มันแค่เปลี่ยนรูปแบบ",keyword:"นิรันดร์"},
+];
+let cards = [...FALLBACK_CARDS];
+let deckOrder = [...cards];
+let supabaseClient = null;
+
+function getCfg(){
+  const u = localStorage.getItem('sb_url') || SUPABASE_URL;
+  const k = localStorage.getItem('sb_key') || SUPABASE_ANON_KEY;
+  return {url:u,key:k};
+}
+function saveCfg(){
+  localStorage.setItem('sb_url', document.getElementById('inpUrl').value);
+  localStorage.setItem('sb_key', document.getElementById('inpKey').value);
+  initSupabase();
+}
+async function initSupabase(){
+  const {url,key} = getCfg();
+  if(!url || url.includes('YOUR_') || !key || key.includes('YOUR_')){ 
+    document.getElementById('connDot').className='w-2 h-2 rounded-full bg-amber-400';
+    document.getElementById('connText').textContent='ใช้ข้อมูลตัวอย่าง (ยังไม่ได้ตั้งค่า Supabase)';
+    renderDeck(); return;
+  }
+  try{
+    supabaseClient = supabase.createClient(url,key);
+    const {data,error} = await supabaseClient.from('Cards').select('*').order('number');
+    if(error) throw error;
+    if(data && data.length>=10){
+      // map supabase to our structure, keep 01-52 only, 99 handled as back
+      const filtered = data.filter(r=>r.number>=1 && r.number<=52);
+      if(filtered.length>0){
+        cards = filtered.map(r=>({
+          number:r.number,
+          name_th:r.name_th||r.name_en||'',
+          name_en:r.name_en||'',
+          meaning:r.meaning_th||r.meaning_en||r.description||'',
+          keyword:r.keyword_th||r.keyword_en||r.keyword||'',
+          image_url:r.image_url||r.image||'',
+        }));
+      }
+    }
+    document.getElementById('connDot').className='w-2 h-2 rounded-full bg-green-500';
+    document.getElementById('connText').textContent='เชื่อมต่อ Supabase แล้ว • '+cards.length+' ใบ';
+  }catch(e){
+    console.log(e);
+    document.getElementById('connDot').className='w-2 h-2 rounded-full bg-red-400';
+    document.getElementById('connText').textContent='เชื่อมต่อไม่ได้ ใช้ข้อมูลตัวอย่าง';
+  }
+  deckOrder=[...cards];
+  renderDeck();
+}
+function cardBackHtml(){
+  // ใช้รูป 99 ที่คุณอัพโหลด ถ้ามีใน storage ให้ใส่ URL ใน CARD_IMAGE_BASE
+  const backUrl = CARD_IMAGE_BASE ? CARD_IMAGE_BASE + '99.jpg' : '';
+  if(backUrl) return `<img src="${backUrl}" class="w-full h-full object-cover rounded-[1.25rem]">`;
+  return `<div class="w-full h-full rounded-[1.25rem] bg-gradient-to-br from-pink-200 via-rose-100 to-amber-100 flex flex-col items-center justify-center border border-white"><div class="text-5xl">♥</div><div class="mt-2 serif text-2xl">99</div><div class="text-[10px] tracking-widest opacity-60 mt-1">HEALING HEART</div></div>`;
+}
+function cardFrontHtml(c){
+  const img = c.image_url ? `<img src="${c.image_url}" class="absolute inset-0 w-full h-full object-cover rounded-[1.25rem]">` : '';
+  const num = String(c.number).padStart(2,'0');
+  return `
+  <div class="w-full h-full rounded-[1.25rem] bg-gradient-to-br from-white to-pink-50 border border-pink-100 p-4 flex flex-col justify-between relative overflow-hidden">
+    ${img}
+    <div class="relative z-10">
+      <div class="text-xs tracking-widest opacity-60">${num}</div>
+      <div class="mt-1 font-medium leading-tight">${c.name_th}</div>
+      <div class="text-[11px] opacity-60 uppercase">${c.name_en}</div>
+    </div>
+    <div class="relative z-10 text-[11px] leading-relaxed opacity-70 line-clamp-3">${c.meaning||''}</div>
+    <div class="absolute inset-0 bg-gradient-to-t from-white/90 via-white/40 to-transparent pointer-events-none ${img?'': 'hidden'}"></div>
+  </div>`;
+}
+function renderDeck(){
+  const q = (document.getElementById('search')?.value||'').toLowerCase();
+  const list = deckOrder.filter(c=>!q || c.name_th.includes(q) || c.name_en.toLowerCase().includes(q) || String(c.number).includes(q));
+  document.getElementById('deckCount').textContent=list.length;
+  document.getElementById('deck').innerHTML = list.map(c=>`
+    <div class="card-wrap relative h-[150px] cursor-pointer" onclick="openCard(${c.number})">
+      <div class="card-inner relative w-full h-full">
+        <div class="card-face card-back bg-white shadow-sm border border-pink-100 overflow-hidden">${cardBackHtml()}</div>
+      </div>
+      <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] bg-white px-2 py-0.5 rounded-full border shadow-sm">${String(c.number).padStart(2,'0')}</div>
+    </div>
+  `).join('');
+}
+function shuffleDeck(){
+  for(let i=deckOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deckOrder[i],deckOrder[j]]=[deckOrder[j],deckOrder[i]]}
+  const d=document.getElementById('deck'); d.classList.add('deck-shuffle'); setTimeout(()=>d.classList.remove('deck-shuffle'),600);
+  renderDeck();
+}
+function drawCards(n){
+  shuffleDeck();
+  const picked = deckOrder.slice(0,n);
+  const area=document.getElementById('reading');
+  const labels = n===3 ? ['อดีต','ปัจจุบัน','อนาคต'] : n===5 ? ['คุณ','เขา','อุปสรรค','คำแนะนำ','บทสรุป'] : ['คำตอบจากหัวใจ'];
+  area.innerHTML = picked.map((c,i)=>`
+    <div class="flex flex-col items-center gap-2">
+      <div class="text-xs tracking-widest text-pink-500">${labels[i]||''}</div>
+      <div id="rcard-${c.number}-${i}" class="card-wrap w-[170px] h-[260px] cursor-pointer" onclick="this.classList.toggle('flipped')">
+        <div class="card-inner relative w-full h-full shadow-xl">
+          <div class="card-face card-back overflow-hidden">${cardBackHtml()}</div>
+          <div class="card-face card-front overflow-hidden">${cardFrontHtml(c)}</div>
+        </div>
+      </div>
+      <div class="text-sm font-medium">${String(c.number).padStart(2,'0')} ${c.name_th}</div>
+      <button onclick="openCard(${c.number})" class="text-xs px-3 py-1 rounded-full bg-white border">ดูความหมาย</button>
+    </div>
+  `).join('');
+  // save history
+  const hist = JSON.parse(localStorage.getItem('hh_history')||'[]');
+  hist.unshift({time:new Date().toLocaleString('th-TH'),cards:picked.map(c=>c.number)});
+  localStorage.setItem('hh_history',JSON.stringify(hist.slice(0,10)));
+  showHistory();
+  if(supabaseClient){
+    supabaseClient.from('readings').insert({cards:picked.map(c=>c.number),type:n+'-cards'}).then(()=>{}).catch(()=>{});
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function clearReading(){document.getElementById('reading').innerHTML='';}
+function openCard(num){
+  const c=cards.find(x=>x.number===num)||FALLBACK_CARDS.find(x=>x.number===num);
+  if(!c) return;
+  document.getElementById('modalContent').innerHTML=`
+    <div class="flex gap-5">
+      <div class="w-[120px] h-[180px] rounded-2xl overflow-hidden bg-pink-50 border">${c.image_url?`<img src="${c.image_url}" class="w-full h-full object-cover">`:cardBackHtml()}</div>
+      <div class="flex-1">
+        <div class="text-xs tracking-widest opacity-60">${String(c.number).padStart(2,'0')} • ${c.name_en}</div>
+        <div class="text-xl font-medium mt-1">${c.name_th}</div>
+        <div class="mt-3 text-sm leading-relaxed">${c.meaning||'ความหมายกำลังเดินทาง...'}</div>
+        <div class="mt-3 text-xs px-3 py-1.5 rounded-full bg-pink-50 inline-block">คีย์เวิร์ด: ${c.keyword||'-'}</div>
+      </div>
+    </div>
+    <div class="mt-6 p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-white border border-pink-100 text-sm leading-relaxed">
+      <b>คำแนะนำจากไพ่:</b> หายใจลึกๆ วางมือที่หัวใจ แล้วถามตัวเองว่า “ข้อความนี้อยากบอกอะไรกับฉันตอนนี้”<br><br>
+      <b>Affirmation:</b> ฉันอนุญาตให้หัวใจได้รับการเยียวยาในแบบที่อ่อนโยนที่สุด
+    </div>
+  `;
+  document.getElementById('modal').classList.remove('hidden');
+}
+function closeModal(){document.getElementById('modal').classList.add('hidden')}
+function toggleGallery(){document.getElementById('deck').scrollIntoView({behavior:'smooth'})}
+function showHistory(){
+  const hist=JSON.parse(localStorage.getItem('hh_history')||'[]');
+  if(hist.length===0) return;
+  document.getElementById('history').classList.remove('hidden');
+  document.getElementById('historyList').innerHTML=hist.map(h=>`<div class="flex justify-between bg-pink-50 px-3 py-2 rounded-xl"><span>${h.time}</span><span class="font-medium">${h.cards.map(n=>String(n).padStart(2,'0')).join(' • ')}</span></div>`).join('');
+}
+// init
+document.getElementById('inpUrl').value=localStorage.getItem('sb_url')||'';
+document.getElementById('inpKey').value=localStorage.getItem('sb_key')||'';
+initSupabase(); showHistory();
+</script>
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script></body>
+</html>
