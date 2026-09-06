@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="th">
+<head><style>
+@font-face {
+  font-family: "Optimistic";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/OptimisticAI_VF_Optimized.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Optimistic Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/OptimisticMono_W_TextRegular.woff2") format("woff2");
+}
+:where(html) {
+  font-family: "Optimistic", system-ui, sans-serif;
+}
+:where(code, pre, kbd, samp) {
+  font-family: "Optimistic Mono", ui-monospace, monospace;
+}
+</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Healing Heart Oracle - 52 Cards | ใบที่ 99 หลังไพ่</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:'Prompt',sans-serif;background:#fff5f8;color:#3a2a2e}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:14px}
+.c{aspect-ratio:2/3.2;border-radius:18px;background:#fff;border:1px solid #f8d7e0;cursor:pointer;position:relative;overflow:hidden;transition:.2s;box-shadow:0 4px 14px rgba(0,0,0,.05)}
+.c:hover{transform:translateY(-4px)}
+.back{background:radial-gradient(circle at 50% 30%,#ffe6ee,#f7b8c9 60%,#e8a0b0);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.back .h{font-size:42px}.back .n{margin-top:6px;letter-spacing:3px;font-size:13px;opacity:.7}
+.front{padding:12px;display:flex;flex-direction:column;justify-content:space-between}
+.front .num{font-size:11px;letter-spacing:2px;opacity:.5}.front .th{font-weight:500;margin-top:4px;line-height:1.2}.front .en{font-size:10px;opacity:.5;margin-top:2px}
+.reading{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;min-height:120px;padding:20px;background:#fff;border-radius:24px;border:1px dashed #f2c2cf;margin:24px 0}
+.btn{border:0;border-radius:999px;padding:11px 20px;cursor:pointer;font-family:'Prompt';font-size:14px}
+.btn-dark{background:#1a1a1a;color:#fff}.btn-pink{background:#ff6b8a;color:#fff}.btn-line{background:#fff;border:1px solid #f1c0cc}
+.flip{perspective:1000px}.flip-inner{width:100%;height:100%;transition:transform .7s;transform-style:preserve-3d;position:relative}
+.flip.flipped .flip-inner{transform:rotateY(180deg)}.face{backface-visibility:hidden;position:absolute;inset:0;border-radius:18px;overflow:hidden}.face.front2{transform:rotateY(180deg)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:99;padding:20px}
+.modal.show{display:flex}.box{background:#fff;border-radius:24px;padding:22px;max-width:520px;width:100%}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;gap:10px;align-items:center"><div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#ff8aa2,#ffb86a);display:flex;align-items:center;justify-content:center;color:#fff">♥</div><div><b>Healing Heart</b><div style="font-size:11px;opacity:.6">Oracle 52 + 99 หลังไพ่</div></div></div>
+    <div style="font-size:11px;opacity:.6">Supabase: ต่อหรือไม่ต่อก็เปิดไพ่ได้ • 99 = หลังไพ่ถาวร</div>
+  </div>
+
+  <h1 style="text-align:center;margin:28px 0 6px;font-size:32px;font-weight:500">ยินดีต้อนรับสู่ Healing Heart</h1>
+  <p style="text-align:center;opacity:.6;margin:0">ไพ่ออราเคิล 52 พลังงานเยียวยา • สับแล้วเลือกด้วยหัวใจ</p>
+
+  <div style="display:flex;gap:10px;justify-content:center;margin:22px 0;flex-wrap:wrap">
+    <button class="btn btn-line" onclick="shuffle()">🔀 สับไพ่</button>
+    <button class="btn btn-dark" onclick="draw(1)">เปิด 1 ใบ</button>
+    <button class="btn btn-pink" onclick="draw(3)">เปิด 3 ใบ • อดีต ปัจจุบัน อนาคต</button>
+    <button class="btn btn-dark" onclick="draw(5)">เปิด 5 ใบ • ความรัก</button>
+    <button class="btn btn-line" onclick="clearR()">ล้างไพ่</button>
+  </div>
+
+  <div id="reading" class="reading"><span style="opacity:.4;margin:auto">ยังไม่ได้เปิดไพ่ — กดปุ่มด้านบน</span></div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><b>สำรับไพ่ทั้งหมด <span id="cnt">52</span></b><input id="q" placeholder="ค้นหา: ความรัก..." oninput="render()" style="border-radius:999px;border:1px solid #e8c2cc;padding:8px 14px;width:200px"></div>
+  <div id="deck" class="card-grid" style="margin-top:14px"></div>
+</div>
+
+<div id="modal" class="modal" onclick="closeM()"><div class="box" onclick="event.stopPropagation()"><div id="mContent"></div><button class="btn btn-line" style="margin-top:14px;width:100%" onclick="closeM()">ปิด</button></div></div>
+
+<script>
+// ---- ข้อมูลไพ่ 01-52 (จาก Supabase ของคุณ) ----
+const CARDS = [
+{number:1,name_th:"การฟื้นคืน",name_en:"RESURRECTION",mean:"หัวใจที่เคยแตกสลายกำลังจะกลับมาเต้นอีกครั้ง ให้อภัยตัวเองแล้วเริ่มใหม่"},
+{number:2,name_th:"ความรัก",name_en:"PURE LOVE",mean:"รักแท้เริ่มจากข้างใน เมื่อคุณรักตัวเองได้ ความรักจากจักรวาลจะไหลเข้ามา"},
+{number:3,name_th:"ความอุดมสมบูรณ์",name_en:"ABUNDANCE",mean:"ความรักมีไม่จำกัด ยิ่งให้ยิ่งได้รับ"},
+{number:4,name_th:"สายใย",name_en:"SOUL THREAD",mean:"บางคนเข้ามาเพื่อผูกสายใย ไม่ใช่ผูกมัด แต่เพื่อเตือนว่าคุณไม่เคยโดดเดี่ยว"},
+{number:5,name_th:"หัวใจเปิด",name_en:"OPEN HEART",mean:"เมื่อหัวใจเปิด โอกาสจะเปิดตาม"},
+{number:6,name_th:"ความผูกพัน",name_en:"SACRED BOND",mean:"ความผูกพันที่แท้จริงไม่ต้องพยายามรั้ง มันอยู่ด้วยความเข้าใจ"},
+{number:7,name_th:"การเยียวยาใจ",name_en:"HEART HEALING",mean:"อนุญาตให้ตัวเองเจ็บ แล้วความเจ็บจะสอนวิธีเยียวยา"},
+{number:8,name_th:"การปล่อยวาง",name_en:"LETTING GO",mean:"การปล่อยวางไม่ใช่ยอมแพ้ แต่คือเลือกความสงบ"},
+{number:9,name_th:"ความไว้ใจ",name_en:"TRUST",mean:"ความไว้ใจคือก้าวแรกของทุกความสัมพันธ์"},
+{number:10,name_th:"ความอ่อนโยน",name_en:"GENTLENESS",mean:"อ่อนโยนกับตัวเองก่อน แล้วโลกจะอ่อนโยนกับคุณ"},
+{number:11,name_th:"ความมั่งคั่งแห่งรัก",name_en:"WEALTH OF LOVE",mean:"รักที่มั่งคั่งคือรักที่แบ่งปันได้"},
+{number:12,name_th:"การตัดสินใจ",name_en:"HEART DECISION",mean:"ฟังหัวใจ ไม่ใช่แค่สมอง"},
+{number:13,name_th:"การเปลี่ยนแปลง",name_en:"TRANSFORMATION",mean:"ทุกการเปลี่ยนแปลงคือการผลัดใบของจิตวิญญาณ"},
+{number:14,name_th:"โอกาสทอง",name_en:"GOLDEN OPPORTUNITY",mean:"โอกาสของความรักมักมาในคราบของความกล้า"},
+{number:15,name_th:"การลงทุนแห่งรัก",name_en:"INVESTMENT",mean:"ความรักต้องลงทุนด้วยเวลา ความใส่ใจ และการรับฟัง"},
+{number:16,name_th:"ผู้กล้าแห่งรัก",name_en:"THE BRAVE LOVER",mean:"กล้าที่จะรักทั้งที่รู้ว่าอาจเจ็บ คือความกล้าหาญสูงสุด"},
+{number:17,name_th:"ความสำเร็จ",name_en:"SUCCESS",mean:"ความสำเร็จในรักวัดที่การเติบโตไปด้วยกัน"},
+{number:18,name_th:"ความมั่นคง",name_en:"STABILITY",mean:"รักที่มั่นคงคือบ้านที่ปลอดภัยให้หัวใจได้พัก"},
+{number:19,name_th:"การเจรจา",name_en:"SACRED COMMUNICATION",mean:"พูดจากหัวใจ ฟังด้วยหัวใจ"},
+{number:20,name_th:"โชคชะตา",name_en:"DESTINY",mean:"โชคชะตาไม่ได้กำหนดให้เราพบใคร แต่กำหนดว่าเราจะเรียนรู้อะไร"},
+{number:21,name_th:"ความผูกพันภายใน",name_en:"INNER BOND",mean:"กลับมาเชื่อมกับตัวเองก่อน"},
+{number:22,name_th:"ความสมบูรณ์",name_en:"WHOLENESS",mean:"คุณสมบูรณ์อยู่แล้ว ความรักมาเพื่อสะท้อน ไม่ใช่เติมเต็ม"},
+{number:23,name_th:"การเรียนรู้",name_en:"SOUL LEARNING",mean:"ทุกความสัมพันธ์คือห้องเรียนของวิญญาณ"},
+{number:24,name_th:"การให้อภัย",name_en:"FORGIVENESS",mean:"การให้อภัยคือการปลดโซ่ตัวเองออกจากอดีต"},
+{number:25,name_th:"การเริ่มต้นใหม่",name_en:"NEW BEGINNING",mean:"ทุกเช้าคือโอกาสเริ่มต้นใหม่ของหัวใจ"},
+{number:26,name_th:"ความไว้ใจอันลึกซึ้ง",name_en:"DEEP TRUST",mean:"เมื่อไว้ใจลึกซึ้ง ความกลัวจะละลาย"},
+{number:27,name_th:"พลังภายใน",name_en:"INNER POWER",mean:"พลังเยียวยาที่แท้จริงอยู่ในตัวคุณ"},
+{number:28,name_th:"พลังงานศักดิ์สิทธิ์",name_en:"DIVINE ENERGY",mean:"คุณกำลังถูกโอบอุ้มด้วยพลังงานที่สูงกว่าตัวคุณ"},
+{number:29,name_th:"ความสมดุล",name_en:"BALANCE",mean:"รักที่ดีคือสมดุลระหว่างให้และรับ"},
+{number:30,name_th:"การโอบกอดตัวเอง",name_en:"SELF EMBRACE",mean:"โอบกอดตัวเองในวันที่ไม่มีใครเข้าใจ"},
+{number:31,name_th:"แสงนำทาง",name_en:"GUIDING LIGHT",mean:"หัวใจของคุณรู้ทางเสมอ"},
+{number:32,name_th:"ความกล้าหาญ",name_en:"COURAGE",mean:"กล้าที่จะซื่อสัตย์กับความรู้สึกตัวเอง"},
+{number:33,name_th:"จักรวาลแห่งรัก",name_en:"UNIVERSE OF LOVE",mean:"จักรวาลกำลังจัดเรียงบางอย่างเพื่อคุณ"},
+{number:34,name_th:"การคืนดี",name_en:"RECONCILIATION",mean:"การคืนดีที่แท้จริงเริ่มจากการคืนดีกับตัวเอง"},
+{number:35,name_th:"พรหมลิขิต",name_en:"SOULMATE",mean:"บางคนไม่ได้มาเพื่ออยู่ตลอดไป แต่มาเพื่อเปลี่ยนตลอดไป"},
+{number:36,name_th:"การเติบโต",name_en:"GROWTH",mean:"ความรักที่เติบโตคือรักที่ยอมให้อีกฝ่ายเติบโตด้วย"},
+{number:37,name_th:"ความเงียบศักดิ์สิทธิ์",name_en:"SACRED SILENCE",mean:"ในความเงียบ คุณจะได้ยินเสียงหัวใจชัดที่สุด"},
+{number:38,name_th:"ปาฏิหาริย์แห่งรัก",name_en:"MIRACLE",mean:"ปาฏิหาริย์เกิดเมื่อคุณเชื่อว่ารักเป็นไปได้"},
+{number:39,name_th:"การปลดปล่อย",name_en:"RELEASE",mean:"ปลดปล่อยความคาดหวัง แล้วรักจะเบาสบาย"},
+{number:40,name_th:"ความเมตตา",name_en:"COMPASSION",mean:"เมตตาต่อคนที่ทำร้ายคุณ คือการปลดปล่อยตัวเอง"},
+{number:41,name_th:"สัญญาแห่งหัวใจ",name_en:"HEART PROMISE",mean:"คำสัญญาที่สำคัญที่สุดคือสัญญาที่ให้ไว้กับหัวใจตัวเอง"},
+{number:42,name_th:"ทางเลือกใหม่",name_en:"NEW PATH",mean:"เมื่อประตูหนึ่งปิด จักรวาลกำลังเปิดอีกบานที่สว่างกว่า"},
+{number:43,name_th:"พลังแห่งการอธิษฐาน",name_en:"PRAYER POWER",mean:"คำอธิษฐานจากหัวใจบริสุทธิ์มีพลังมากกว่าที่คุณคิด"},
+{number:44,name_th:"ความจริงใจ",name_en:"SINCERITY",mean:"ความจริงใจคือภาษาที่ทุกคนเข้าใจ"},
+{number:45,name_th:"การเยียวยาอดีต",name_en:"PAST HEALING",mean:"อดีตไม่ได้ตามหลอกหลอน มันแค่รอการเยียวยา"},
+{number:46,name_th:"ความหวัง",name_en:"HOPE",mean:"ความหวังคือแสงเล็กๆ ที่ทำให้หัวใจไม่มืดสนิท"},
+{number:47,name_th:"การรวมเป็นหนึ่ง",name_en:"UNION",mean:"เมื่อสองหัวใจรวมเป็นหนึ่ง ไม่ใช่การสูญเสียตัวตน แต่คือการขยายตัวตน"},
+{number:48,name_th:"ความอิสระ",name_en:"FREEDOM",mean:"รักที่แท้จริงให้อิสระ ไม่ได้กักขัง"},
+{number:49,name_th:"ของขวัญจากจักรวาล",name_en:"GIFT FROM UNIVERSE",mean:"สิ่งที่คุณรอคอยกำลังถูกห่อเป็นของขวัญส่งมา"},
+{number:50,name_th:"ความศรัทธา",name_en:"FAITH",mean:"ศรัทธาในรัก แม้ในวันที่รักยังมองไม่เห็น"},
+{number:51,name_th:"การเฉลิมฉลอง",name_en:"CELEBRATION",mean:"เฉลิมฉลองความรักในทุกรูปแบบ"},
+{number:52,name_th:"นิรันดร์แห่งรัก",name_en:"ETERNAL LOVE",mean:"รักแท้ไม่เคยจบ มันแค่เปลี่ยนรูปแบบ"},
+];
+// หลังไพ่ 99 - ใช้ถาวร ไม่สับรวม
+const BACK = {number:99,name_th:"หลังไพ่",name_en:"CARD BACK"};
+
+let order = [...CARDS];
+function backHTML(){return `<div class="c back"><div class="h">♥</div><div style="font-size:22px;margin-top:4px">99</div><div class="n">HEALING HEART</div></div>`}
+function frontHTML(c){return `<div class="c front"><div><div class="num">${String(c.number).padStart(2,'0')}</div><div class="th">${c.name_th}</div><div class="en">${c.name_en}</div></div><div style="font-size:11px;opacity:.7;line-height:1.4">${c.mean}</div></div>`}
+
+function render(){
+  const q=document.getElementById('q').value.toLowerCase();
+  const list=order.filter(c=>!q||c.name_th.includes(q)||c.name_en.toLowerCase().includes(q));
+  document.getElementById('cnt').textContent=list.length;
+  document.getElementById('deck').innerHTML=list.map(c=>`<div onclick="openMCard(${c.number})">${backHTML()}<div style="text-align:center;font-size:11px;margin-top:4px">${String(c.number).padStart(2,'0')} ${c.name_th}</div></div>`).join('');
+}
+function shuffle(){for(let i=order.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]]}render()}
+function draw(n){
+  shuffle();
+  const picked=order.slice(0,n);
+  const labels=n===3?['อดีต','ปัจจุบัน','อนาคต']:n===5?['คุณ','เขา','อุปสรรค','คำแนะนำ','บทสรุป']:['คำตอบ'];
+  document.getElementById('reading').innerHTML=picked.map((c,i)=>`
+    <div style="width:150px;text-align:center">
+      <div style="font-size:11px;color:#ff6b8a;margin-bottom:6px">${labels[i]||''}</div>
+      <div class="flip" onclick="this.classList.toggle('flipped')" style="width:100%;aspect-ratio:2/3.2">
+        <div class="flip-inner"><div class="face">${backHTML()}</div><div class="face front2">${frontHTML(c)}</div></div>
+      </div>
+      <div style="font-size:12px;margin-top:6px">${String(c.number).padStart(2,'0')} ${c.name_th}</div>
+    </div>
+  `).join('');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function clearR(){document.getElementById('reading').innerHTML='<span style="opacity:.4;margin:auto">ยังไม่ได้เปิดไพ่ — กดปุ่มด้านบน</span>'}
+function openMCard(num){
+  const c=CARDS.find(x=>x.number===num);
+  document.getElementById('mContent').innerHTML=`<div style="display:flex;gap:14px"><div style="width:110px">${backHTML()}</div><div><div style="font-size:11px;opacity:.5">${String(c.number).padStart(2,'0')} • ${c.name_en}</div><div style="font-size:18px;font-weight:500;margin-top:4px">${c.name_th}</div><div style="margin-top:10px;font-size:13px;line-height:1.6">${c.mean}</div></div></div><div style="margin-top:14px;background:#fff5f8;padding:12px;border-radius:14px;font-size:12px">Affirmation: ฉันอนุญาตให้หัวใจได้รับการเยียวยาในแบบที่อ่อนโยนที่สุด</div>`;
+  document.getElementById('modal').classList.add('show');
+}
+function closeM(){document.getElementById('modal').classList.remove('show')}
+render();
+</script>
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script></body>
+</html>
